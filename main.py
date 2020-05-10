@@ -8,7 +8,7 @@ import torch
 from core import algorithms, utils
 from core.arguments import get_args
 from core.envs import make_vec_envs
-from core.model import Policy
+from core.agents import PolicyGradientAgent
 from core.storage import RolloutStorage
 from evaluation import evaluate
 
@@ -34,7 +34,7 @@ def main():
     envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
                          args.gamma, args.log_dir, device, False)
 
-    actor_critic = Policy(
+    actor_critic = PolicyGradientAgent(
         envs.observation_space.shape,
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy})

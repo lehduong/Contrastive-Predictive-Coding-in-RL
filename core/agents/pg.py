@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from core.distributions import Bernoulli, Categorical, DiagGaussian
 from core.utils import init
@@ -12,9 +11,9 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 
-class Policy(nn.Module):
+class PolicyGradientAgent(nn.Module):
     def __init__(self, obs_shape, action_space, base=None, base_kwargs=None):
-        super(Policy, self).__init__()
+        super(PolicyGradientAgent, self).__init__()
         # create base network for acting
         if base_kwargs is None:
             base_kwargs = {}
