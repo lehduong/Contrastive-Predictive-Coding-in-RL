@@ -1,8 +1,12 @@
+"""
+Make environment for Atari, DeepMind Control and Mujoco
+"""
 import os
 
 import gym
 import numpy as np
 import torch
+
 from gym.spaces.box import Box
 
 from baselines import bench
@@ -27,7 +31,6 @@ try:
     import pybullet_envs
 except ImportError:
     pass
-
 
 def make_env(env_id, seed, rank, log_dir, allow_early_resets):
     def _thunk():

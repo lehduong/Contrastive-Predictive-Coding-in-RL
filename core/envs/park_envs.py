@@ -1,3 +1,6 @@
+"""
+Make environments of Park Platform
+"""
 import torch
 import numpy as np 
 import os
@@ -11,7 +14,7 @@ from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines.common.vec_env.shmem_vec_env import ShmemVecEnv
 from baselines.common.wrappers import TimeLimit
 
-from .envs import VecNormalize, VecPyTorch, VecPyTorchFrameStack
+from .standard_envs import VecNormalize, VecPyTorch, VecPyTorchFrameStack
 
 PARK_ENV_LIST = ['abr', 'abr_sim',
                  'spark', 'spark_sim',

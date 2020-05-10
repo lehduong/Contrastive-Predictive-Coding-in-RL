@@ -7,7 +7,7 @@ import torch
 
 from core import algorithms, utils
 from core.arguments import get_args
-from core.envs import make_vec_envs
+from core.envs.park_envs import make_vec_envs
 from core.agents import PolicyGradientAgent
 from core.storage import RolloutStorage
 from evaluation import evaluate
