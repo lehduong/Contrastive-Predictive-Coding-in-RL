@@ -103,3 +103,4 @@ venv.bak/
 trained_models/
 .fuse_hidden*
 .DS_Store/
+.idea/
