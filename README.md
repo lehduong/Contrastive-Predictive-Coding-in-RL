@@ -35,11 +35,11 @@ pip install -e .
 pip install 'gym[atari]'
 ```
 
-5. Install [Park Platform](https://github.com/park-project/park)
+5. Install [Park Platform](https://github.com/park-project/park). I modified the platform slightly to make it compatible with OpenAI's baseline.
 ```bash
-git clone https://github.com/park-project/park &&\
+git clone https://github.com/lehduong/park &&\
 cd park && \
-python setup.py install
+pip install -e .
 ```
 
 ## Run experiments
