@@ -31,14 +31,19 @@ except ImportError:
 
 def make_env(env_id, seed, rank, log_dir, allow_early_resets):
     def _thunk():
+        # Deepmind Control Environment
         if env_id.startswith("dm"):
             _, domain, task = env_id.split('.')
             env = dm_control2gym.make(domain_name=domain, task_name=task)
+        # otherwise
         else:
             env = gym.make(env_id)
 
         is_atari = hasattr(gym.envs, 'atari') and isinstance(
             env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
+        #TODO: what does 'make_atari' does?
+        # add random number of no-op action, which is action[0] in default, to make the initial states more diversity.
+        # it also use an action multiple times to reduce the number of returning frame.
         if is_atari:
             env = make_atari(env_id)
 
@@ -48,6 +53,8 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
             env = TimeLimitMask(env)
 
         if log_dir is not None:
+            #TODO: wtf is this :)
+            # some logging values are only available for environments wrapped with Monitor
             env = bench.Monitor(
                 env,
                 os.path.join(log_dir, str(rank)),
@@ -86,6 +93,7 @@ def make_vec_envs(env_name,
     ]
 
     if len(envs) > 1:
+        # shared variables to communicate observations
         envs = ShmemVecEnv(envs, context='fork')
     else:
         envs = DummyVecEnv(envs)
@@ -96,6 +104,7 @@ def make_vec_envs(env_name,
         else:
             envs = VecNormalize(envs, gamma=gamma)
 
+    #TODO: wtf is this? 
     envs = VecPyTorch(envs, device)
 
     if num_frame_stack is not None:
