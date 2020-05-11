@@ -4,7 +4,7 @@ import os
 import torch
 import torch.nn as nn
 
-from core.envs import VecNormalize
+from core.envs.standard_envs import VecNormalize
 
 
 # Get a render function
