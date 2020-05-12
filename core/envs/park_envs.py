@@ -14,7 +14,7 @@ from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines.common.vec_env.shmem_vec_env import ShmemVecEnv
 from baselines.common.wrappers import TimeLimit
 
-from .standard_envs import VecNormalize, VecPyTorch, VecPyTorchFrameStack
+from .standard_envs import VecNormalize, VecPyTorch, VecPyTorchFrameStack, TimeLimitMask
 
 PARK_ENV_LIST = ['abr', 'abr_sim',
                  'spark', 'spark_sim',
@@ -29,6 +29,8 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, max_episode_steps=
 
         if max_episode_steps:
             env = TimeLimit(env, max_episode_steps)
+            # adding information to env for computing return
+            env = TimeLimitMask(env)
 
         env.seed(seed+rank)
 
@@ -36,7 +38,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, max_episode_steps=
             env = bench.Monitor(
                     env,
                     os.path.join(log_dir, str(rank)),
-                    allow_early_resets =allow_early_resets)
+                    allow_early_resets=allow_early_resets)
 
         obs_shape = env.observation_space.shape
         

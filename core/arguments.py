@@ -64,8 +64,8 @@ def get_args():
     parser.add_argument(
         '--num-steps',
         type=int,
-        default=5,
-        help='number of forward steps in A2C (default: 5)')
+        default=20,
+        help='number of forward steps in A2C (default: 20)')
     parser.add_argument(
         '--ppo-epoch',
         type=int,
@@ -123,6 +123,14 @@ def get_args():
         action='store_true',
         default=False,
         help='compute returns taking into account time limits')
+    parser.add_argument(
+        '--max-episode-steps',
+        default=1000,
+        help='maximum number of steps per episode of environment (default: 1000)')
+    parser.add_argument(
+        '--num-frame-stack',
+        default=4,
+        help='number of observation that will be grouped together (default: 4)')
     parser.add_argument(
         '--recurrent-policy',
         action='store_true',
