@@ -14,20 +14,23 @@ from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines.common.vec_env.shmem_vec_env import ShmemVecEnv
 from baselines.common.wrappers import TimeLimit
 
-from .standard_envs import VecNormalize, VecPyTorch, VecPyTorchFrameStack
+from .standard_envs import VecNormalize, VecPyTorch, VecPyTorchFrameStack, TimeLimitMask
 
 PARK_ENV_LIST = ['abr', 'abr_sim',
                  'spark', 'spark_sim',
                  'load_balance']
 
-def make_env(env_id, seed, rank, log_dir, allow_early_resets):
+def make_env(env_id, seed, rank, log_dir, allow_early_resets, max_episode_steps=None):
     def _thunk():
         if env_id not in PARK_ENV_LIST:
             raise ValueError("Unsupported environment, expect the environment to be one of "+str(PARK_ENV_LIST)+" but got: "+str(env_id))
         else:
             env = park.make(env_id)
 
-        # env = TimeLimit(env, max_episode_steps=None)
+        if max_episode_steps:
+            env = TimeLimit(env, max_episode_steps)
+            # adding information to env for computing return
+            env = TimeLimitMask(env)
 
         env.seed(seed+rank)
 
@@ -35,7 +38,7 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
             env = bench.Monitor(
                     env,
                     os.path.join(log_dir, str(rank)),
-                    allow_early_resets =allow_early_resets)
+                    allow_early_resets=allow_early_resets)
 
         obs_shape = env.observation_space.shape
         
@@ -59,9 +62,10 @@ def make_vec_envs(env_name,
                   log_dir,
                   device,
                   allow_early_resets,
-                  num_frame_stack=None):
+                  num_frame_stack=None,
+                  max_episode_steps=None):
     envs = [
-            make_env(env_name, seed, i, log_dir, allow_early_resets)
+            make_env(env_name, seed, i, log_dir, allow_early_resets, max_episode_steps)
             for i in range(num_processes)
     ]
 
@@ -75,13 +79,6 @@ def make_vec_envs(env_name,
     #         envs = VecNormalize(envs, ret=False)
     #     else:
     #         envs = VecNormalize(envs, gamma=gamma)
-
     envs = VecPyTorch(envs, device)
-    
-    #TODO: Check if I can remove this part or not
-    if num_frame_stack is not None:
-        envs = VecPyTorchFrameStack(envs, num_frame_stack, device)
-    elif len(envs.observation_space.shape) == 3:
-        envs = VecPyTorchFrameStack(envs, 4, device) 
 
     return envs

@@ -30,10 +30,14 @@ def main():
 
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
-
-    envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
-                         args.gamma, args.log_dir, device, False)
-
+    
+    if not args.use_proper_time_limits:
+        envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+                         args.gamma, args.log_dir, device, False, args.num_frame_stack)
+    else:
+        envs = make_vec_envs(args.env_name, args.seed, args.num_processes,
+                         args.gamma, args.log_dir, device, True, args.num_frame_stack, args.max_episode_steps)
+    
     actor_critic = PolicyGradientAgent(
         envs.observation_space.shape,
         envs.action_space,

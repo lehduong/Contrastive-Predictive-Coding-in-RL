@@ -32,7 +32,7 @@ try:
 except ImportError:
     pass
 
-def make_env(env_id, seed, rank, log_dir, allow_early_resets):
+def make_env(env_id, seed, rank, log_dir, allow_early_resets, max_episode_steps=None):
     def _thunk():
         # Deepmind Control Environment
         if env_id.startswith("dm"):
@@ -44,11 +44,8 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
 
         is_atari = hasattr(gym.envs, 'atari') and isinstance(
             env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
-        #TODO: what does 'make_atari' does?
-        # add random number of no-op action, which is action[0] in default, to make the initial states more diversity.
-        # it also use an action multiple times to reduce the number of returning frame.
         if is_atari:
-            env = make_atari(env_id)
+            env = make_atari(env_id, max_episode_steps)
 
         env.seed(seed + rank)
 
@@ -56,7 +53,6 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets):
             env = TimeLimitMask(env)
 
         if log_dir is not None:
-            #TODO: wtf is this :)
             # some logging values are only available for environments wrapped with Monitor
             env = bench.Monitor(
                 env,
@@ -89,9 +85,10 @@ def make_vec_envs(env_name,
                   log_dir,
                   device,
                   allow_early_resets,
-                  num_frame_stack=None):
+                  num_frame_stack=None,
+                  max_episode_steps=None):
     envs = [
-        make_env(env_name, seed, i, log_dir, allow_early_resets)
+            make_env(env_name, seed, i, log_dir, allow_early_resets, max_episode_steps)
         for i in range(num_processes)
     ]
 
