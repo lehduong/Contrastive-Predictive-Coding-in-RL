@@ -126,6 +126,7 @@ def get_args():
     parser.add_argument(
         '--max-episode-steps',
         default=1000,
+        type=int,
         help='maximum number of steps per episode of environment (default: 1000)')
     parser.add_argument(
         '--num-frame-stack',
