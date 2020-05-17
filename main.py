@@ -104,7 +104,6 @@ def main():
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action)
-
             for info in infos:
                 if 'episode' in info.keys():
                     episode_rewards.append(info['episode']['r'])
@@ -125,7 +124,7 @@ def main():
 
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
-
+        
         value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
         rollouts.after_update()

@@ -6,6 +6,10 @@ from core.distributions import Bernoulli, Categorical, DiagGaussian
 from core.utils import init
 from core.networks import CNNBase, MLPBase
 
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
 
 class PolicyGradientAgent(nn.Module):
     def __init__(self, obs_shape, action_space, base=None, base_kwargs=None):
