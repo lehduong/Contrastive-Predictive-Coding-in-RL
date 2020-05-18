@@ -19,7 +19,7 @@ class PolicyGradientAgent(nn.Module):
             elif len(obs_shape) == 1:
                 base = MLPBase
             else:
-                raise NotImplementedError
+                raise NotImplementedError("Expect the observation's shape to be either 3 or 1 but got {}".format(len(obs_shape)))
 
         self.base = base(obs_shape[0], **base_kwargs)
 
