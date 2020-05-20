@@ -19,12 +19,15 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
                  alpha=None,
                  max_grad_norm=None,
                  acktr=False,
+                 device='cpu',
                  num_steps=200):
         super().__init__(actor_critic, value_loss_coef, entropy_coef, lr, eps, alpha, max_grad_norm, acktr)
         self.num_steps = num_steps  # number of steps per gradient update (trade off between bias and variance)
         hidden_dim = actor_critic.base.output_size
         self.Wk_state  = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for i in range(num_steps)])
+        self.Wk_state = self.Wk_state.to(device)
         self.Wk_state_action  = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for i in range(num_steps)])
+        self.Wk_state_action = self.Wk_state_action.to(device)
         self.softmax = nn.Softmax(dim=0)
         self.log_softmax = nn.LogSoftmax(dim=0)
 

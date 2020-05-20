@@ -68,6 +68,7 @@ def main():
             eps=args.eps,
             alpha=args.alpha,
             max_grad_norm=args.max_grad_norm,
+            device=device,
             num_steps=args.num_steps)
 
     elif args.algo == 'ppo':
