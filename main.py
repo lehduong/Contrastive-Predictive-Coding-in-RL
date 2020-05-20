@@ -9,7 +9,7 @@ from core import algorithms, utils
 from core.arguments import get_args
 from core.envs import make_vec_envs
 from core.agents import PolicyGradientAgent, CPCPolicyGradientAgent
-from core.storage import RolloutStorage
+from core.storage import RolloutStorage, CPCRolloutStorage
 from evaluation import evaluate
 
 
@@ -42,6 +42,12 @@ def main():
         envs.observation_space.shape,
         envs.action_space,
         base_kwargs={'recurrent': args.recurrent_policy})
+    if args.use_cpc:
+        actor_critic = CPCPolicyGradientAgent(
+        envs.observation_space.shape,
+        envs.action_space,
+        base_kwargs={'recurrent': args.recurrent_policy})
+
     actor_critic.to(device)
 
     if args.algo == 'a2c':
@@ -53,6 +59,17 @@ def main():
             eps=args.eps,
             alpha=args.alpha,
             max_grad_norm=args.max_grad_norm)
+        if args.use_cpc:
+            agent = algorithms.CPC_A2C_ACKTR(
+            actor_critic,
+            args.value_loss_coef,
+            args.entropy_coef,
+            lr=args.lr,
+            eps=args.eps,
+            alpha=args.alpha,
+            max_grad_norm=args.max_grad_norm,
+            num_steps=args.num_steps)
+
     elif args.algo == 'ppo':
         agent = algorithms.PPO(
             actor_critic,
@@ -74,7 +91,7 @@ def main():
     if args.use_cpc:
         rollouts = CPCRolloutStorage(args.num_steps, args.num_processes,
                                   envs.observation_space.shape, envs.action_space,
-                                  actor_critic.recurrent_hidden_state_size)
+                                  actor_critic.recurrent_hidden_state_size, actor_critic.base.output_size)
 
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)
@@ -124,8 +141,12 @@ def main():
             bad_masks = torch.FloatTensor(
                 [[0.0] if 'bad_transition' in info.keys() else [1.0]
                  for info in infos])
-            rollouts.insert(obs, recurrent_hidden_states, action,
-                            action_log_prob, value, reward, masks, bad_masks)
+            if args.use_cpc:
+                rollouts.insert(obs, recurrent_hidden_states, action,
+                                action_log_prob, value, reward, masks, bad_masks, state_feat, action_feat)
+            else:
+                rollouts.insert(obs, recurrent_hidden_states, action,
+                                action_log_prob, value, reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
@@ -135,7 +156,10 @@ def main():
         rollouts.compute_returns(next_value, args.use_gae, args.gamma,
                                  args.gae_lambda, args.use_proper_time_limits)
         
-        value_loss, action_loss, dist_entropy = agent.update(rollouts)
+        if args.use_cpc:
+            value_loss, action_loss, dist_entropy, cpc_result = agent.update(rollouts)
+        else:
+            value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
         rollouts.after_update()
 
@@ -164,6 +188,11 @@ def main():
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
                         action_loss))
+            print('CPC state loss {}, CPC state action loss {}, CPC state acc {}, CPC state action acc {}'
+                  .format(cpc_result['nce_state'],
+                          cpc_result['nce_state_action'],
+                          cpc_result['accuracy_state'],
+                          cpc_result['accuracy_state_action']))
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
