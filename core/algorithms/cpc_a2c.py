@@ -30,6 +30,7 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         self.Wk_state_action = self.Wk_state_action.to(device)
         self.softmax = nn.Softmax(dim=0)
         self.log_softmax = nn.LogSoftmax(dim=0)
+        self.device = device 
 
     def update(self, rollouts):
         """
@@ -112,8 +113,8 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         
         # compute W_i*c_t
         # num_steps * n_processes * hidden_size
-        pred_state = torch.empty(self.num_steps, n_processes, hidden_size).float()
-        pred_state_action = torch.empty(self.num_steps, n_processes, hidden_size).float()
+        pred_state = torch.empty(self.num_steps, n_processes, hidden_size).float().to(self.device)
+        pred_state_action = torch.empty(self.num_steps, n_processes, hidden_size).float().to(self.device)
         for i in range(self.num_steps):
             # condition s_t
             linear_state = self.Wk_state[i]
