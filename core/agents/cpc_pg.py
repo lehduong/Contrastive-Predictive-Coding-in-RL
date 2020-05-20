@@ -13,27 +13,6 @@ class CPCPolicyGradientAgent(PolicyGradientAgent):
         The difference between this class and PolicyGradientAgent is that when acting, the instances of this class 
             also return state_feat and action_feat
     """
-    def __init__(self, obs_shape, action_space, state_encoder=None, base_kwargs=None):
-        super(CPCPolicyGradientAgent, self).__init__(obs_shape, action_space, state_encoder, base_kwargs)
-        self.state_encoder = self.base
-        self.action_encoder = nn.Embedding(action_space.n, self.state_encoder.output_size)
-
-        # action sampling mechanism
-        if action_space.__class__.__name__ == "Discrete":
-            num_outputs = action_space.n
-            self.dist = Categorical(self.state_encoder.output_size, num_outputs)
-        elif action_space.__class__.__name__ == "Box":
-            num_outputs = action_space.shape[0]
-            self.dist = DiagGaussian(self.state_encoder.output_size, num_outputs)
-        elif action_space.__class__.__name__ == "MultiBinary":
-            num_outputs = action_space.shape[0]
-            self.dist = Bernoulli(self.state_encoder.output_size, num_outputs)
-        else:
-            raise NotImplementedError
-
-    def forward(self, inputs, rnn_hxs, masks):
-        raise NotImplementedError
-
     def act(self, inputs, rnn_hxs, masks, deterministic=False):
         value, state_feat, rnn_hxs = self.state_encoder(inputs, rnn_hxs, masks)
         dist = self.dist(state_feat)
@@ -49,17 +28,3 @@ class CPCPolicyGradientAgent(PolicyGradientAgent):
         dist_entropy = dist.entropy().mean()
 
         return value, action, action_log_probs, rnn_hxs, state_feat, action_feat
-
-    def get_value(self, inputs, rnn_hxs, masks):
-        value, _, _ = self.state_encoder(inputs, rnn_hxs, masks)
-        return value
-
-    def evaluate_actions(self, inputs, rnn_hxs, masks, action):
-        value, actor_features, rnn_hxs = self.state_encoder(inputs, rnn_hxs, masks)
-        dist = self.dist(actor_features)
-
-        action_log_probs = dist.log_probs(action)
-        dist_entropy = dist.entropy().mean()
-
-        return value, action_log_probs, dist_entropy, rnn_hxs
-

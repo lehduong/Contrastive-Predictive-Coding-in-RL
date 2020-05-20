@@ -2,64 +2,31 @@ from .base_storage import RolloutStorage
 
 
 class CPCRolloutStorage(RolloutStorage):
+    def __init__(self, num_steps, num_processes, obs_shape, action_space,
+                 recurrent_hidden_state_size):
+        super().__init__(num_steps, num_processes, obs_shape, action_space,
+                         recurrent_hidden_state_size)
+        # recurrent_hidden_state has same size as features of observation/action
+        self.obs_feat = torch.zeros(num_steps+1, num_processes, recurrent_hidden_state_size) 
+        self.action_feat = torch.zeros(num_steps+1, num_processes, recurrent_hidden_state_size) 
+        
+    def to(self, device):
+        self.obs_feat = self.obs_feat.to(device)
+        self.action_feat = self.action_feat.to(device)
+        super().to(device)
+        
     def insert(self, obs, recurrent_hidden_states, actions, action_log_probs,
-               value_preds, rewards, masks, bad_masks):
-        self.obs[self.step + 1].copy_(obs)
-        self.recurrent_hidden_states[self.step +
-                                     1].copy_(recurrent_hidden_states)
-        self.actions[self.step].copy_(actions)
-        self.action_log_probs[self.step].copy_(action_log_probs)
-        self.value_preds[self.step].copy_(value_preds)
-        self.rewards[self.step].copy_(rewards)
-        self.masks[self.step + 1].copy_(masks)
-        self.bad_masks[self.step + 1].copy_(bad_masks)
-
-        self.step = (self.step + 1) % self.num_steps
+               value_preds, rewards, masks, bad_masks, obs_feat, action_feat):
+        """
+        store features of obs and action for contrastive learning
+        """
+        self.obs_feat[self.step + 1].copy_(obs_feat)
+        self.action_feat[self.step + 1].copy_(action_feat)
+        super().insert(obs, recurrent_hidden_states, actions, action_log_probs,
+               value_preds, rewards, masks, bad_masks)
 
     def after_update(self):
-        self.obs[0].copy_(self.obs[-1])
-        self.recurrent_hidden_states[0].copy_(self.recurrent_hidden_states[-1])
-        self.masks[0].copy_(self.masks[-1])
-        self.bad_masks[0].copy_(self.bad_masks[-1])
-
-    def compute_returns(self,
-                        next_value,
-                        use_gae,
-                        gamma,
-                        gae_lambda,
-                        use_proper_time_limits=True):
-        if use_proper_time_limits:
-            if use_gae:
-                self.value_preds[-1] = next_value
-                gae = 0
-                for step in reversed(range(self.rewards.size(0))):
-                    delta = self.rewards[step] + gamma * self.value_preds[
-                        step + 1] * self.masks[step +
-                                               1] - self.value_preds[step]
-                    gae = delta + gamma * gae_lambda * self.masks[step +
-                                                                  1] * gae
-                    gae = gae * self.bad_masks[step + 1]
-                    self.returns[step] = gae + self.value_preds[step]
-            else:
-                self.returns[-1] = next_value
-                for step in reversed(range(self.rewards.size(0))):
-                    self.returns[step] = (self.returns[step + 1] * \
-                        gamma * self.masks[step + 1] + self.rewards[step]) * self.bad_masks[step + 1] \
-                        + (1 - self.bad_masks[step + 1]) * self.value_preds[step]
-        else:
-            if use_gae:
-                self.value_preds[-1] = next_value
-                gae = 0
-                for step in reversed(range(self.rewards.size(0))):
-                    delta = self.rewards[step] + gamma * self.value_preds[
-                        step + 1] * self.masks[step +
-                                               1] - self.value_preds[step]
-                    gae = delta + gamma * gae_lambda * self.masks[step +
-                                                                  1] * gae
-                    self.returns[step] = gae + self.value_preds[step]
-            else:
-                self.returns[-1] = next_value
-                for step in reversed(range(self.rewards.size(0))):
-                    self.returns[step] = self.returns[step + 1] * \
-                        gamma * self.masks[step + 1] + self.rewards[step]
+        self.obs_feat[0].copy_(self.obs_feat[-1])
+        self.action_feat[0].copy_(self.act_feat[-1])
+        super().after_update()
 
