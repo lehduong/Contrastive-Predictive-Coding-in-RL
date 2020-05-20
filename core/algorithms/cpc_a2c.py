@@ -134,8 +134,8 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
             state_total = torch.mm(obs_feat[i], pred_state[i])
             state_action_total = torch.mm(obs_action_feat[i], pred_state_action[i])
             # accuracy
-            correct_state = torch.sum(torch.eq(torch.argmax(self.softmax(state_total)), torch.arange(0, n_processes)))
-            correct_state_action = torch.sum(torch.eq(torch.argmax(self.softmax(state_action_total)), torch.arange(0, n_processes)))
+            correct_state = torch.sum(torch.eq(torch.argmax(self.softmax(state_total)), torch.arange(0, n_processes).to(self.device)))
+            correct_state_action = torch.sum(torch.eq(torch.argmax(self.softmax(state_action_total)), torch.arange(0, n_processes).to(self.device)))
 
             # nce
             nce_state += torch.sum(torch.diag(self.log_softmax(state_total)))

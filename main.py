@@ -189,11 +189,12 @@ def main():
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
                         action_loss))
-            print('CPC state loss {}, CPC state action loss {}, CPC state acc {}, CPC state action acc {}'
-                  .format(cpc_result['nce_state'],
-                          cpc_result['nce_state_action'],
-                          cpc_result['accuracy_state'],
-                          cpc_result['accuracy_state_action']))
+            if args.use_cpc:
+                print("CPC state loss {}, CPC state action loss {}, CPC state acc {}, CPC state action acc {}"
+                    .format(cpc_result['nce_state'],
+                            cpc_result['nce_state_action'],
+                            cpc_result['accuracy_state'],
+                            cpc_result['accuracy_state_action']))
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
