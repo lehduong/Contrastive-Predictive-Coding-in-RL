@@ -139,8 +139,8 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
             state_total = torch.mm(obs_feat[i], pred_state[i])
             state_action_total = torch.mm(obs_action_feat[i], pred_state_action[i])
             # accuracy
-            correct_state += torch.sum(torch.eq(torch.argmax(self.softmax(state_total)), torch.arange(0, n_processes).to(self.device)))
-            correct_state_action += torch.sum(torch.eq(torch.argmax(self.softmax(state_action_total)), torch.arange(0, n_processes).to(self.device)))
+            correct_state += torch.sum(torch.eq(torch.argmax(self.softmax(state_total), dim=0), torch.arange(0, n_processes).to(self.device)))
+            correct_state_action += torch.sum(torch.eq(torch.argmax(self.softmax(state_action_total), dim=0), torch.arange(0, n_processes).to(self.device)))
 
             # nce
             nce_state += torch.sum(torch.diag(self.log_softmax(state_total)))
@@ -149,7 +149,7 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         nce_state /= -1*n_processes*self.num_steps
         nce_state_action /= -1*n_processes*self.num_steps
         # accuracy
-        accuracy_state = 1.*correct_state.item()/n_processes
-        accuracy_state_action = 1.*correct_state_action.item()/n_processes
+        accuracy_state = 1.*correct_state.item()/(n_processes*num_steps)
+        accuracy_state_action = 1.*correct_state_action.item()/(n_processes*num_steps)
         
         return accuracy_state, accuracy_state_action, nce_state, nce_state_action
