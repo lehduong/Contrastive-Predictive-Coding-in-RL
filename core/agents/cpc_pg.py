@@ -32,3 +32,13 @@ class CPCPolicyGradientAgent(PolicyGradientAgent):
         dist_entropy = dist.entropy().mean()
 
         return value, action, action_log_probs, rnn_hxs, state_feat, action_feat
+
+    def evaluate_actions(self, inputs, rnn_hxs, masks, action):
+        value, state_feat, rnn_hxs = self.state_encoder(inputs, rnn_hxs, masks)
+        dist = self.dist(state_feat)
+
+        action_feat = self.action_encoder(action.view(-1))
+        action_log_probs = dist.log_probs(action)
+        dist_entropy = dist.entropy().mean()
+
+        return value, action_log_probs, dist_entropy, rnn_hxs, state_feat, action_feat

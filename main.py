@@ -182,15 +182,22 @@ def main():
             total_num_steps = (j + 1) * args.num_processes * args.num_steps
             end = time.time()
             print(
-                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
+                "\nUpdates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}"
                 .format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
                         len(episode_rewards), np.mean(episode_rewards),
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
                         action_loss))
+            print(
+                " Value loss: {:.2f} Action loss {:2f} Dist Entropy {:2f}"
+                .format(value_loss,
+                        action_loss,
+                        dist_entropy)
+            )
             if args.use_cpc:
-                print("CPC state loss {}, CPC state action loss {}, CPC state acc {}, CPC state action acc {}"
+                print(
+                    " CPC state loss {:.2f}, CPC state action loss {:.2f}, CPC state acc {:.2f}, CPC state action acc {:.2f}"
                     .format(cpc_result['nce_state'],
                             cpc_result['nce_state_action'],
                             cpc_result['accuracy_state'],
