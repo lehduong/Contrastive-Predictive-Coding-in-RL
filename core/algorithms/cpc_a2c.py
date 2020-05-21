@@ -25,8 +25,8 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         self.num_steps = num_steps  # number of steps per gradient update (trade off between bias and variance)
         hidden_dim = actor_critic.base.output_size
         self.Wk_state  = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for i in range(num_steps)])
-        self.Wk_state = self.Wk_state.to(device)
         self.Wk_state_action  = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for i in range(num_steps)])
+        self.Wk_state = self.Wk_state.to(device)
         self.Wk_state_action = self.Wk_state_action.to(device)
         self.softmax = nn.Softmax(dim=0)
         self.log_softmax = nn.LogSoftmax(dim=0)
@@ -40,20 +40,23 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         action_shape = rollouts.actions.size()[-1]
         num_steps, num_processes, _ = rollouts.rewards.size()
 
-        values, action_log_probs, dist_entropy, _ = self.actor_critic.evaluate_actions(
+        values, action_log_probs, dist_entropy, _, state_feat, action_feat = self.actor_critic.evaluate_actions(
             rollouts.obs[:-1].view(-1, *obs_shape),
             rollouts.recurrent_hidden_states[0].view(
                 -1, self.actor_critic.recurrent_hidden_state_size),
             rollouts.masks[:-1].view(-1, 1),
             rollouts.actions.view(-1, action_shape))
 
+        # reshape to L x N x C
         values = values.view(num_steps, num_processes, 1)
+        state_feat = state_feat.view(num_steps, num_processes, -1)
+        action_feat = action_feat.view(num_steps, num_processes, -1)
         action_log_probs = action_log_probs.view(num_steps, num_processes, 1)
 
         advantages = rollouts.returns[:-1] - values
         value_loss = advantages.pow(2).mean()
         # nce loss
-        accuracy_state, accuracy_state_action, nce_state, nce_state_action = self.cpc(rollouts)
+        accuracy_state, accuracy_state_action, nce_state, nce_state_action = self.cpc(state_feat, action_feat)
         # cpc result
         cpc_result = {
                       'nce_state': nce_state.item(), 
@@ -82,7 +85,7 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
 
         self.optimizer.zero_grad()
         (value_loss * self.value_loss_coef + action_loss -
-         dist_entropy * self.entropy_coef + nce_state + nce_state_action).backward()
+         dist_entropy * self.entropy_coef + nce_state).backward()
 
         if self.acktr == False:
             nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
@@ -92,14 +95,14 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
 
         return value_loss.item(), action_loss.item(), dist_entropy.item(), cpc_result
     
-    def cpc(self, rollouts):
+    def cpc(self, obs_feat, action_feat):
         """
             Contrastive Predictive Coding for learning representation and density ratio
             Learn h(a_t|s_t, s_k)/p(a_t|s_t) by estimating TWO density ratio
                 p(s_t,a_t|s_k)/p(s_t,a_t) and p(s_t|s_k)/p(s_t)
+            :param obs_feat: tensor of shape: (timestep, n_processes, hidden_size)
+            :param action_feat: tensor of shape: (timestep, n_processes, hidden_size)
         """
-        obs_feat = rollouts.obs_feat  # of shape: (timestep, n_processes, hidden_size)
-        action_feat = rollouts.action_feat  # of shape: (timestep, n_processes, hidden_size)
         _, n_processes, hidden_size = action_feat.shape
 
         # create vector combining both action and state
