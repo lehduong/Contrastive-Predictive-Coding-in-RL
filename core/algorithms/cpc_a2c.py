@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from core.algorithms.kfac import KFACOptimizer
+from core.agents import CPCPolicyGradientAgent 
 from .a2c_acktr import A2C_ACKTR
 
 class CPC_A2C_ACKTR(A2C_ACKTR):
@@ -11,7 +12,7 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
             this class return an auxiliary loss at update method for learning representation of state and action.
     """
     def __init__(self,
-                 actor_critic,
+                 actor_critic: CPCPolicyGradientAgent,
                  value_loss_coef,
                  entropy_coef,
                  lr=None,
@@ -103,8 +104,8 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
             :param obs_feat: tensor of shape: (timestep, n_processes, hidden_size)
             :param action_feat: tensor of shape: (timestep, n_processes, hidden_size)
         """
-        _, n_processes, hidden_size = action_feat.shape
-
+        num_steps, n_processes, hidden_size = action_feat.shape
+        
         # create vector combining both action and state
         # used for learning p(s_t,a_t | s_k)/p(s_t,a_t)
         obs_action_feat = obs_feat+action_feat
@@ -116,13 +117,13 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         
         # compute W_i*c_t
         # num_steps * n_processes * hidden_size
-        pred_state = torch.empty(self.num_steps, n_processes, hidden_size).float().to(self.device)
-        pred_state_action = torch.empty(self.num_steps, n_processes, hidden_size).float().to(self.device)
+        pred_state = torch.empty(num_steps, n_processes, hidden_size).float().to(self.device)
+        pred_state_action = torch.empty(num_steps, n_processes, hidden_size).float().to(self.device)
         for i in range(self.num_steps):
             # condition s_t
             linear_state = self.Wk_state[i]
             pred_state[i] = linear_state(state_condition)
-            
+
             # condition s_t, a_t
             linear_state_action = self.Wk_state_action[i]
             pred_state_action[i] = linear_state_action(state_action_condition)
@@ -130,15 +131,16 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         # transpose pred_state and pred_state_action to num_steps, hidden_size, n_processes
         pred_state = pred_state.permute(0, 2, 1)
         pred_state_action = pred_state_action.permute(0, 2, 1)
-        
+
         nce_state, nce_state_action = 0, 0
+        correct_state, correct_state_action = 0, 0
         # compute nce
         for i in range(self.num_steps):
             state_total = torch.mm(obs_feat[i], pred_state[i])
             state_action_total = torch.mm(obs_action_feat[i], pred_state_action[i])
             # accuracy
-            correct_state = torch.sum(torch.eq(torch.argmax(self.softmax(state_total)), torch.arange(0, n_processes).to(self.device)))
-            correct_state_action = torch.sum(torch.eq(torch.argmax(self.softmax(state_action_total)), torch.arange(0, n_processes).to(self.device)))
+            correct_state += torch.sum(torch.eq(torch.argmax(self.softmax(state_total)), torch.arange(0, n_processes).to(self.device)))
+            correct_state_action += torch.sum(torch.eq(torch.argmax(self.softmax(state_action_total)), torch.arange(0, n_processes).to(self.device)))
 
             # nce
             nce_state += torch.sum(torch.diag(self.log_softmax(state_total)))
