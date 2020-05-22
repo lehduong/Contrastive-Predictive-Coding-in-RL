@@ -89,10 +89,6 @@ def main():
     rollouts = RolloutStorage(args.num_steps, args.num_processes,
                               envs.observation_space.shape, envs.action_space,
                               actor_critic.recurrent_hidden_state_size)
-    if args.use_cpc:
-        rollouts = CPCRolloutStorage(args.num_steps, args.num_processes,
-                                  envs.observation_space.shape, envs.action_space,
-                                  actor_critic.recurrent_hidden_state_size, actor_critic.base.output_size)
 
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)
@@ -120,15 +116,9 @@ def main():
         for step in range(args.num_steps):
             # Sample actions
             with torch.no_grad():
-                if args.use_cpc:
-                    # if using CPC actor critic, act method also returns embedding of 
-                    value, action, action_log_prob, recurrent_hidden_states, state_feat, action_feat = actor_critic.act(
-                        rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-                        rollouts.masks[step])
-                else:
-                    value, action, action_log_prob, recurrent_hidden_states = actor_critic.act(
-                        rollouts.obs[step], rollouts.recurrent_hidden_states[step],
-                        rollouts.masks[step])
+                value, action, action_log_prob, recurrent_hidden_states = actor_critic.act(
+                    rollouts.obs[step], rollouts.recurrent_hidden_states[step],
+                    rollouts.masks[step])
 
             # Obser reward and next obs
             obs, reward, done, infos = envs.step(action)
@@ -142,12 +132,8 @@ def main():
             bad_masks = torch.FloatTensor(
                 [[0.0] if 'bad_transition' in info.keys() else [1.0]
                  for info in infos])
-            if args.use_cpc:
-                rollouts.insert(obs, recurrent_hidden_states, action,
-                                action_log_prob, value, reward, masks, bad_masks, state_feat, action_feat)
-            else:
-                rollouts.insert(obs, recurrent_hidden_states, action,
-                                action_log_prob, value, reward, masks, bad_masks)
+            rollouts.insert(obs, recurrent_hidden_states, action,
+                            action_log_prob, value, reward, masks, bad_masks)
 
         with torch.no_grad():
             next_value = actor_critic.get_value(
