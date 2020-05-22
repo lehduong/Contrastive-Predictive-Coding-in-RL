@@ -10,6 +10,7 @@ from core.arguments import get_args
 from core.envs import make_vec_envs
 from core.agents import PolicyGradientAgent, CPCPolicyGradientAgent
 from core.storage import RolloutStorage, CPCRolloutStorage
+from core.networks import BNCNN
 from evaluation import evaluate
 
 
@@ -46,6 +47,7 @@ def main():
         actor_critic = CPCPolicyGradientAgent(
         envs.observation_space.shape,
         envs.action_space,
+        base=BNCNN,
         base_kwargs={'recurrent': args.recurrent_policy})
 
     actor_critic.to(device)

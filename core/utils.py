@@ -52,7 +52,8 @@ def update_linear_schedule(optimizer, epoch, total_num_epochs, initial_lr):
 
 def init(module, weight_init, bias_init, gain=1):
     weight_init(module.weight.data, gain=gain)
-    bias_init(module.bias.data)
+    if hasattr(module, 'bias') and (not module.bias is None):
+        bias_init(module.bias.data)
     return module
 
 

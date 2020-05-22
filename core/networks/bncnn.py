@@ -7,9 +7,6 @@ class BNCNN(NNBase):
     def __init__(self, num_inputs, recurrent=False, hidden_size=512):
         super().__init__(recurrent, hidden_size, hidden_size)
 
-        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0), nn.init.calculate_gain('relu'))
-
         # shared weight that encode state to vector
         self.main = nn.Sequential(
             self.init_weight(nn.Conv2d(num_inputs, 32, 4, stride=2, bias=False)), 
@@ -47,12 +44,16 @@ class BNCNN(NNBase):
         self.train()
     
     def init_weight(self, layer):
+        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                               constant_(x, 0), nn.init.calculate_gain('relu'))
         if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
-            init(layer, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0))
+            return init_(layer)
         elif isinstance(layer, nn.BatchNorm2d):
             layer.weight.data.fill_(1)
-            layer.bias.data.zero_()
-            
+            if hasattr(layer, 'bias'):
+                layer.bias.data.zero_()
+            return layer 
+
     def forward(self, inputs, rnn_hxs, masks):
         x = self.main(inputs / 255.0)
 
