@@ -9,7 +9,7 @@ from core import algorithms, utils
 from core.arguments import get_args
 from core.envs import make_vec_envs
 from core.agents import PolicyGradientAgent, CPCPolicyGradientAgent
-from core.storage import RolloutStorage, CPCRolloutStorage
+from core.storage import RolloutStorage
 from core.networks import BNCNN
 from evaluation import evaluate
 
