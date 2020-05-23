@@ -20,10 +20,13 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
                  alpha=None,
                  max_grad_norm=None,
                  acktr=False,
+                 cpc_coef=0.1,
                  device='cpu',
                  num_steps=200):
         super().__init__(actor_critic, value_loss_coef, entropy_coef, lr, eps, alpha, max_grad_norm, acktr)
         self.num_steps = num_steps  # number of steps per gradient update (trade off between bias and variance)
+        self.device = device 
+        self.cpc_coef = cpc_coef
         hidden_dim = actor_critic.base.output_size
         self.Wk_state  = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for i in range(num_steps)])
         self.Wk_state_action  = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim, bias=False) for i in range(num_steps)])
@@ -31,7 +34,6 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
         self.Wk_state_action = self.Wk_state_action.to(device)
         self.softmax = nn.Softmax(dim=0)
         self.log_softmax = nn.LogSoftmax(dim=0)
-        self.device = device 
 
     def update(self, rollouts):
         """
@@ -86,7 +88,7 @@ class CPC_A2C_ACKTR(A2C_ACKTR):
 
         self.optimizer.zero_grad()
         (value_loss * self.value_loss_coef + action_loss -
-         dist_entropy * self.entropy_coef + self.entropy_coef*10*nce_state).backward()
+         dist_entropy * self.entropy_coef + self.cpc_coef*nce_state).backward()
 
         if self.acktr == False:
             nn.utils.clip_grad_norm_(self.actor_critic.parameters(),

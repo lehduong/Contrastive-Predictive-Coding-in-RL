@@ -40,6 +40,11 @@ def get_args():
         default=0.01,
         help='entropy term coefficient (default: 0.01)')
     parser.add_argument(
+        '--cpc-coef',
+        type=float,
+        default=0.1,
+        help='contrastive predictive coding term coefficient (default: 0.1)')
+    parser.add_argument(
         '--value-loss-coef',
         type=float,
         default=0.5,
